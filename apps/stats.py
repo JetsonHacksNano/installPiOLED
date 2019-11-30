@@ -99,10 +99,6 @@ while True:
     MemUsage = subprocess.check_output(cmd, shell = True )
     cmd = "df -h | awk '$NF==\"/\"{printf \"Disk: %d/%dGB %s\", $3,$2,$5}'"
     Disk = subprocess.check_output(cmd, shell = True )
-    GPU = 0
-    with open ("/sys/devices/gpu.0/load", encoding="utf-8") as gpu_file:
-      GPU=gpu_file.readline()
-      GPU=int(GPU)/10
 
     # Print the IP address 
     # Two examples here, wired and wireless 
@@ -120,14 +116,14 @@ while True:
        gpu_usage=0.001
     draw_bar_width=int(full_bar_width*(gpu_usage/100))
     draw.text((x, top+8),     "GPU:  ", font=font, fill=255)
-    draw.rectangle((x+string_width,top+12,draw_bar_width+x+string_width,top+14), outline=1, fill=1)
+    draw.rectangle((x+string_width,top+12,x+string_width+draw_bar_width,top+14), outline=1, fill=1)
 
     # Show the memory Usage
     # The MemUsage string is too long to display, we cut it down some here
     mem_usage=MemUsage.decode('utf-8').split()
-    # slice off the last character (which is %)
+    # slice off the last character (which is a % character)
     mem_percent_use=float(mem_usage[2][:-1])
-    draw.text((x, top+16),mem_usage[0]+" "+mem_usage[1]+" "+"{:3.0f}".format(mem_percent_use)+"%", font=font, fill=255)
+    draw.text((x, top+16),mem_usage[0]+" "+"{:3.0f}".format(mem_percent_use)+"%"+" "+mem_usage[1], font=font, fill=255)
     # draw.text((x, top+16),    str(MemUsage.decode('utf-8')),  font=font, fill=255)
     # Show the amount of disk being used
     draw.text((x, top+25),    str(Disk.decode('utf-8')),  font=font, fill=255)
@@ -135,4 +131,5 @@ while True:
     # Display image.
     disp.image(image)
     disp.display()
+    # Update 4x a second; 1 = 1 second
     time.sleep(0.25)
