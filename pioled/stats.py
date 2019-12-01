@@ -24,14 +24,18 @@
 
 import time
 
-import Adafruit_SSD1306
+import Adafruit_SSD1306   # This is the driver chip for the Adafruit PiOLED
 
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-# from jetbot.utils.utils import get_ip_address
 
 import subprocess
+
+
+def get_network_interface_state(interface):
+    return subprocess.check_output('cat /sys/class/net/%s/operstate' % interface, shell=True).decode('ascii')[:-1]
+
 
 def get_ip_address(interface):
     if get_network_interface_state(interface) == 'down':
@@ -39,22 +43,30 @@ def get_ip_address(interface):
     cmd = "ifconfig %s | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'" % interface
     return subprocess.check_output(cmd, shell=True).decode('ascii')[:-1]
 
-# Return a float representing the percentage of GPU being used.
+# Return a string representing the percentage of CPU in use
+
+
+def get_cpu_usage():
+    # Shell scripts for system monitoring from here : https://unix.stackexchange.com/questions/119126/command-to-display-memory-usage-disk-usage-and-cpu-load
+    cmd = "top -bn1 | grep load | awk '{printf \"CPU Load: %.2f\", $(NF-2)}'"
+    CPU = subprocess.check_output(cmd, shell=True)
+    return CPU
+
+# Return a float representing the percentage of GPU in use.
 # On the Jetson Nano, the GPU is GPU0
+
+
 def get_gpu_usage():
     GPU = 0.0
-    with open ("/sys/devices/gpu.0/load", encoding="utf-8") as gpu_file:
-      GPU=gpu_file.readline()
-      GPU=int(GPU)/10
+    with open("/sys/devices/gpu.0/load", encoding="utf-8") as gpu_file:
+        GPU = gpu_file.readline()
+        GPU = int(GPU)/10
     return GPU
 
 
-def get_network_interface_state(interface):
-    return subprocess.check_output('cat /sys/class/net/%s/operstate' % interface, shell=True).decode('ascii')[:-1]
-
-
 # 128x32 display with hardware I2C:
-disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=1, gpio=1) # setting gpio to 1 is hack to avoid platform detection
+# setting gpio to 1 is hack to avoid platform detection
+disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=1, gpio=1)
 
 # Initialize library.
 disp.begin()
@@ -73,7 +85,7 @@ image = Image.new('1', (width, height))
 draw = ImageDraw.Draw(image)
 
 # Draw a black filled box to clear the image.
-draw.rectangle((0,0,width,height), outline=0, fill=0)
+draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
 # Draw some shapes.
 # First define some constants to allow easy resizing of shapes.
@@ -86,50 +98,46 @@ x = 0
 # Load default font.
 font = ImageFont.load_default()
 
-
 while True:
 
     # Draw a black filled box to clear the image.
-    draw.rectangle((0,0,width,height), outline=0, fill=0)
+    draw.rectangle((0, 0, width, height), outline=0, fill=0)
 
     # Shell scripts for system monitoring from here : https://unix.stackexchange.com/questions/119126/command-to-display-memory-usage-disk-usage-and-cpu-load
-    cmd = "top -bn1 | grep load | awk '{printf \"CPU Load: %.2f\", $(NF-2)}'"
-    CPU = subprocess.check_output(cmd, shell = True )
-    cmd = "free -m | awk 'NR==2{printf \"Mem: %s/%sMB %.2f%%\", $3,$2,$3*100/$2 }'"
-    MemUsage = subprocess.check_output(cmd, shell = True )
+    cmd = "free -m | awk 'NR==2{printf \"Mem:  %.0f%% %s/%s M\", $3*100/$2, $3,$2 }'"
+    MemUsage = subprocess.check_output(cmd, shell=True)
     cmd = "df -h | awk '$NF==\"/\"{printf \"Disk: %d/%dGB %s\", $3,$2,$5}'"
-    Disk = subprocess.check_output(cmd, shell = True )
+    Disk = subprocess.check_output(cmd, shell=True)
 
-    # Print the IP address 
-    # Two examples here, wired and wireless 
-    draw.text((x, top),       "eth0: " + str(get_ip_address('eth0')),  font=font, fill=255)
+    # Print the IP address
+    # Two examples here, wired and wireless
+    draw.text((x, top),       "eth0: " +
+              str(get_ip_address('eth0')),  font=font, fill=255)
     # draw.text((x, top+8),     "wlan0: " + str(get_ip_address('wlan0')), font=font, fill=255)
 
-    # Draw the GPU usage as a bar graph
+    # Alternate solution: Draw the GPU usage as text
     # draw.text((x, top+8),     "GPU:  " +"{:3.1f}".format(GPU)+" %", font=font, fill=255)
-    string_width, string_height=font.getsize("GPU:  ")
+    # We draw the GPU usage as a bar graph
+    string_width, string_height = font.getsize("GPU:  ")
     # Figure out the width of the bar
-    full_bar_width=width-(x+string_width)-1
-    gpu_usage=get_gpu_usage()
+    full_bar_width = width-(x+string_width)-1
+    gpu_usage = get_gpu_usage()
     # Avoid divide by zero ...
-    if gpu_usage == 0.0 :
-       gpu_usage=0.001
-    draw_bar_width=int(full_bar_width*(gpu_usage/100))
+    if gpu_usage == 0.0:
+        gpu_usage = 0.001
+    draw_bar_width = int(full_bar_width*(gpu_usage/100))
     draw.text((x, top+8),     "GPU:  ", font=font, fill=255)
-    draw.rectangle((x+string_width,top+12,x+string_width+draw_bar_width,top+14), outline=1, fill=1)
+    draw.rectangle((x+string_width, top+12, x+string_width +
+                    draw_bar_width, top+14), outline=1, fill=1)
 
     # Show the memory Usage
-    # The MemUsage string is too long to display, we cut it down some here
-    mem_usage=MemUsage.decode('utf-8').split()
-    # slice off the last character (which is a % character)
-    mem_percent_use=float(mem_usage[2][:-1])
-    draw.text((x, top+16),mem_usage[0]+" "+"{:3.0f}".format(mem_percent_use)+"%"+" "+mem_usage[1], font=font, fill=255)
-    # draw.text((x, top+16),    str(MemUsage.decode('utf-8')),  font=font, fill=255)
+    draw.text((x, top+16), str(MemUsage.decode('utf-8')), font=font, fill=255)
     # Show the amount of disk being used
-    draw.text((x, top+25),    str(Disk.decode('utf-8')),  font=font, fill=255)
+    draw.text((x, top+25), str(Disk.decode('utf-8')), font=font, fill=255)
 
     # Display image.
+    # Set the SSD1306 image to the PIL image we have made, then dispaly
     disp.image(image)
     disp.display()
-    # Update 4x a second; 1 = 1 second
+    # Update 4x a second; 1.0 = 1 second
     time.sleep(0.25)
