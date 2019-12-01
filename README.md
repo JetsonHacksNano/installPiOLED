@@ -24,7 +24,7 @@ You should consider filling out the setup.py file in the top directory more full
   
 <h3>Notes</h3>
 
-<b>December, 2019</b>
+<h4>December, 2019</h4>
 Initial Release
 
 * Jetson Nano
