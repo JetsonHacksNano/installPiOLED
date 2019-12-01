@@ -10,7 +10,7 @@ sudo usermod -aG i2c $USER
 sudo apt-get update
 sudo apt install python3-pip python3-pil -y
 # Install the Adafruit library for the SSD1306 OLED driver
-# Note that this library is depecrated; newer versions of
+# Note that Adafruit-SSD1306 library is depecrated; newer versions of
 # the library use CircuitPython
 pip3 install Adafruit-SSD1306
 # We should be able to access the PiOLED now
