@@ -139,5 +139,5 @@ while True:
     # Set the SSD1306 image to the PIL image we have made, then dispaly
     disp.image(image)
     disp.display()
-    # Update 4x a second; 1.0 = 1 second
-    time.sleep(0.25)
+    # 1.0 = 1 second; The divisor is the desired updates (frames) per second
+    time.sleep(1.0/4)
