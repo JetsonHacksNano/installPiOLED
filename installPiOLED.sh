@@ -7,6 +7,7 @@
 
 # Set our access to I2C permissions
 sudo usermod -aG i2c $USER
+sudo udevadm control --reload-rules && sudo udevadm trigger
 sudo apt-get update
 sudo apt install python3-pip python3-pil -y
 # Install the Adafruit library for the SSD1306 OLED driver
