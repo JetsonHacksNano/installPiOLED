@@ -1,6 +1,8 @@
 # installPiOLED
 Install the Adafruit PiOLED 128x32 Monochrome OLED driver (3527)
 
+Original article on JetsonHacks: https://wp.me/p7ZgI9-33H
+
 The Adafruit PiOLED is a handy little display that connects to the Jetson Nano GPIO header. The display communicates with the Jetson over I2C, and is powered via the GPIO pins.
 
 There are two scripts here, along with an file which displays information on the display. The file is pioled/stats.py. Gernerally you will modify the stats.py file to meet your needs. The default is to show the eth0 address, an updating GPU usage bar graph, memory usage and disk usage.
